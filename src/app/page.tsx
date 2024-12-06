@@ -11,11 +11,16 @@ import useEmblaCarousel from "embla-carousel-react"
 import { Brain, BookOpen, Clock } from "lucide-react"
 import { JournalDialog } from "@/components/journal/journal-dialog"
 
-interface DreamEntry {
+class DreamEntry {
   id: string
   title: string
   content: string
   date: Date
+  lucidityLevel: number
+  moodLevel: number
+  emotions: string[]
+  clarity: number
+  tags: string[]
   analysis?: {
     messages: {
       text: string
@@ -23,6 +28,35 @@ interface DreamEntry {
       timestamp: Date
     }[]
     lastUpdated: Date
+  }
+  messages: {
+    text: string
+    isUser: boolean
+    timestamp: Date
+  }[]
+  text: string
+  isUser: boolean
+  timestamp: Date
+  lastUpdated: Date
+  showInJournal: boolean
+
+  constructor(data: Partial<DreamEntry> = {}) {
+    this.id = data.id || crypto.randomUUID()
+    this.title = data.title || ''
+    this.content = data.content || ''
+    this.date = data.date || new Date()
+    this.lucidityLevel = data.lucidityLevel || 1
+    this.moodLevel = data.moodLevel || 3
+    this.emotions = data.emotions || []
+    this.clarity = data.clarity || 3
+    this.tags = data.tags || []
+    this.analysis = data.analysis
+    this.messages = data.messages || []
+    this.text = data.text || ''
+    this.isUser = data.isUser || false
+    this.timestamp = data.timestamp || new Date()
+    this.lastUpdated = data.lastUpdated || new Date()
+    this.showInJournal = data.showInJournal ?? true
   }
 }
 
@@ -112,7 +146,7 @@ export default function Home() {
             }[];
             lastUpdated: string;
           };
-        }) => ({
+        }) => new DreamEntry({
           ...entry,
           date: new Date(entry.date),
           analysis: entry.analysis ? {
@@ -137,7 +171,7 @@ export default function Home() {
 
   const handleEntriesUpdate = useCallback((newEntries: DreamEntry[]) => {
     // Ensure dates are properly handled
-    const entriesWithDates = newEntries.map(entry => ({
+    const entriesWithDates = newEntries.map(entry => new DreamEntry({
       ...entry,
       date: entry.date instanceof Date ? entry.date : new Date(entry.date),
       analysis: entry.analysis ? {
@@ -175,13 +209,13 @@ export default function Home() {
       if (entryIndex === -1) return prevEntries;
 
       const newEntries = [...prevEntries];
-      newEntries[entryIndex] = {
+      newEntries[entryIndex] = new DreamEntry({
         ...newEntries[entryIndex],
         analysis: {
           messages,
           lastUpdated: new Date()
         }
-      };
+      });
 
       // Save to localStorage with proper date handling
       const entriesForStorage = newEntries.map(entry => ({
@@ -257,6 +291,10 @@ export default function Home() {
                 <HistoryContainer
                   entries={entries}
                   onEntriesChange={handleEntriesUpdate}
+                  onDreamSelect={({ id, content }) => {
+                    setSelectedDream({ id, content });
+                    scrollTo(0); // Switch to analysis tab
+                  }}
                 />
               </div>
             </div>

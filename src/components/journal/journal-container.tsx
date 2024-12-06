@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { BookOpen, Plus, FileText, Search, Trash2, Brain, X, Pencil } from "lucide-react"
+import { BookOpen, Plus, FileText, Search, Trash2, Brain, X, Pencil, Clock, Archive } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -13,6 +13,11 @@ interface JournalEntry {
   title: string;
   content: string;
   date: Date;
+  lucidityLevel: number;
+  moodLevel: number;
+  emotions: string[];
+  clarity: number;
+  tags: string[];
   analysis?: {
     messages: {
       text: string;
@@ -21,6 +26,16 @@ interface JournalEntry {
     }[];
     lastUpdated: Date;
   };
+  messages: {
+    text: string;
+    isUser: boolean;
+    timestamp: Date;
+  }[];
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
+  lastUpdated: Date;
+  showInJournal: boolean;
 }
 
 interface JournalContainerProps {
@@ -36,7 +51,13 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
   // State for new entry being created
   const [newEntry, setNewEntry] = useState({
     title: '',
-    content: ''
+    content: '',
+    lucidityLevel: 1,
+    moodLevel: 3,
+    emotions: [] as string[],
+    clarity: 3,
+    tags: [] as string[],
+    showInJournal: true
   })
 
   // State for search query
@@ -55,27 +76,51 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
   const handleAddEntry = () => {
     if (!newEntry.title.trim() || !newEntry.content.trim()) return;
     
-    const entry = {
+    const entry: JournalEntry = {
       id: crypto.randomUUID(),
       title: newEntry.title,
       content: newEntry.content,
-      date: new Date()
+      date: new Date(),
+      lucidityLevel: newEntry.lucidityLevel,
+      moodLevel: newEntry.moodLevel,
+      emotions: newEntry.emotions,
+      clarity: newEntry.clarity,
+      tags: newEntry.tags,
+      messages: [], // Add an empty array for messages
+      text: newEntry.content, // Use content as text
+      isUser: true, // Assuming the entry is created by the user
+      timestamp: new Date(), // Current timestamp
+      lastUpdated: new Date(), // Current timestamp for last update
+      showInJournal: newEntry.showInJournal
     };
 
-    const updatedEntries = [entry, ...entries]
-    onEntriesChange(updatedEntries)
+    const updatedEntries = [entry, ...entries];
+    onEntriesChange(updatedEntries);
     
-    setNewEntry({ title: '', content: '' }); // Reset form
-    setOpen(false); // Close dialog
+    setNewEntry({
+      title: '',
+      content: '',
+      lucidityLevel: 1,
+      moodLevel: 3,
+      emotions: [],
+      clarity: 3,
+      tags: [],
+      showInJournal: true
+    });
+    setOpen(false);
   };
 
-  // Function to delete an entry
+  // Function to delete an entry from journal view
   const handleDeleteEntry = (id: string) => {
-    const updatedEntries = entries.filter(entry => entry.id !== id)
+    const updatedEntries = entries.map(entry => 
+      entry.id === id 
+        ? { ...entry, showInJournal: false }
+        : entry
+    )
     onEntriesChange(updatedEntries)
   }
 
-  // Function to handle analyze click
+  // Function to handle analyze click (switches to analysis tab)
   const handleAnalyzeClick = (entry: JournalEntry) => {
     const event = new CustomEvent('analyzeDream', {
       detail: { content: entry.content, id: entry.id }
@@ -83,11 +128,15 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
     window.dispatchEvent(event);
   };
 
-  // Filtered entries based on search query
+  // Filtered entries based on search query and journal visibility
   const filteredEntries = useMemo(() => {
-    if (!searchQuery) return entries
+    // First filter by journal visibility
+    const journalEntries = entries.filter(entry => entry.showInJournal)
+    
+    // Then filter by search query if it exists
+    if (!searchQuery) return journalEntries
     const query = searchQuery.toLowerCase()
-    return entries.filter(
+    return journalEntries.filter(
       entry => 
         entry.title.toLowerCase().includes(query) || 
         entry.content.toLowerCase().includes(query)
@@ -106,29 +155,79 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Record Your Dream</DialogTitle>
+              <DialogTitle>New Dream Entry</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <Input
-                placeholder="Give your dream a title..."
-                value={newEntry.title}
-                onChange={(e) => setNewEntry({ ...newEntry, title: e.target.value })}
-              />
-              <Textarea
-                placeholder="Describe your dream in detail..."
-                value={newEntry.content}
-                onChange={(e) => setNewEntry({ ...newEntry, content: e.target.value })}
-                className="min-h-[200px]"
-              />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button 
-                  onClick={handleAddEntry} 
-                  disabled={!newEntry.title || !newEntry.content}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                >
-                  Save Dream
-                </Button>
+            <div className="space-y-4 mt-4">
+              <div>
+                <Input
+                  placeholder="Dream Title"
+                  value={newEntry.title}
+                  onChange={(e) => setNewEntry({ ...newEntry, title: e.target.value })}
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <Textarea
+                  placeholder="Describe your dream..."
+                  value={newEntry.content}
+                  onChange={(e) => setNewEntry({ ...newEntry, content: e.target.value })}
+                  className="min-h-[200px]"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Lucidity Level (1-5)</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="5"
+                  value={newEntry.lucidityLevel}
+                  onChange={(e) => setNewEntry({ ...newEntry, lucidityLevel: parseInt(e.target.value) })}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Not Lucid</span>
+                  <span>Fully Lucid</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Mood Level (1-5)</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="5"
+                  value={newEntry.moodLevel}
+                  onChange={(e) => setNewEntry({ ...newEntry, moodLevel: parseInt(e.target.value) })}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Negative</span>
+                  <span>Positive</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Dream Clarity (1-5)</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="5"
+                  value={newEntry.clarity}
+                  onChange={(e) => setNewEntry({ ...newEntry, clarity: parseInt(e.target.value) })}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Hazy</span>
+                  <span>Crystal Clear</span>
+                </div>
+              </div>
+              <div>
+                <Input
+                  placeholder="Add tags (comma separated)"
+                  onChange={(e) => setNewEntry({ ...newEntry, tags: e.target.value.split(',').map(tag => tag.trim()) })}
+                  className="w-full"
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={handleAddEntry}>Save Dream</Button>
               </div>
             </div>
           </DialogContent>
@@ -185,10 +284,10 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                         }}
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        className="h-8 w-8 text-muted-foreground hover:text-muted-foreground"
                       >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
+                        <Archive className="h-4 w-4" />
+                        <span className="sr-only">Move to History</span>
                       </Button>
                     </div>
                   </div>
@@ -203,20 +302,6 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                       })}
                     </p>
                     <div className="flex items-center gap-2">
-                      {entry.analysis && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedEntry(entry)
-                            setShowAnalysis(true)
-                          }}
-                          className="text-xs text-muted-foreground hover:text-foreground h-7"
-                        >
-                          View Analysis
-                        </Button>
-                      )}
                       <Button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -245,18 +330,106 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
       </div>
 
       <Dialog open={selectedEntry !== null} onOpenChange={(open) => !open && setSelectedEntry(null)}>
-        <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
-          <DialogHeader className="flex flex-row items-center justify-between">
-            <DialogTitle>{selectedEntry?.title}</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pt-4">
-            <div className="space-y-2">
-              <h4 className="font-medium">Dream Content</h4>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedEntry?.content}</p>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-none">
+            <DialogTitle className="text-2xl">
+              {selectedEntry?.title}
+            </DialogTitle>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              {selectedEntry?.date.toLocaleDateString()}
             </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-6 py-4">
+            <div className="grid grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <div className="font-medium">Lucidity Level</div>
+                <div className="flex items-center">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-3 h-3 rounded-full mr-1.5 ${
+                        i < (selectedEntry?.lucidityLevel || 0) ? 'bg-purple-500' : 'bg-gray-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {selectedEntry?.lucidityLevel === 5 ? 'Fully Lucid' :
+                   selectedEntry?.lucidityLevel === 4 ? 'Highly Lucid' :
+                   selectedEntry?.lucidityLevel === 3 ? 'Moderately Lucid' :
+                   selectedEntry?.lucidityLevel === 2 ? 'Slightly Lucid' :
+                   'Not Lucid'}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="font-medium">Mood Level</div>
+                <div className="flex items-center">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-3 h-3 rounded-full mr-1.5 ${
+                        i < (selectedEntry?.moodLevel || 0) ? 'bg-green-500' : 'bg-gray-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {selectedEntry?.moodLevel === 5 ? 'Very Positive' :
+                   selectedEntry?.moodLevel === 4 ? 'Positive' :
+                   selectedEntry?.moodLevel === 3 ? 'Neutral' :
+                   selectedEntry?.moodLevel === 2 ? 'Negative' :
+                   'Very Negative'}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="font-medium">Dream Clarity</div>
+                <div className="flex items-center">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-3 h-3 rounded-full mr-1.5 ${
+                        i < (selectedEntry?.clarity || 0) ? 'bg-blue-500' : 'bg-gray-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {selectedEntry?.clarity === 5 ? 'Crystal Clear' :
+                   selectedEntry?.clarity === 4 ? 'Very Clear' :
+                   selectedEntry?.clarity === 3 ? 'Moderately Clear' :
+                   selectedEntry?.clarity === 2 ? 'Somewhat Hazy' :
+                   'Very Hazy'}
+                </div>
+              </div>
+            </div>
+            
+            {selectedEntry?.tags && selectedEntry?.tags.length > 0 && (
+              <div className="space-y-2">
+                <div className="font-medium">Tags</div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedEntry?.tags.map((tag, index) => (
+                    <span key={index} className="px-3 py-1 bg-muted rounded-full text-sm">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="prose prose-sm max-w-none">
+              <p className="whitespace-pre-wrap">{selectedEntry?.content}</p>
+            </div>
+
             {selectedEntry?.analysis && showAnalysis && (
-              <div className="space-y-2 pt-4 border-t">
-                <h4 className="font-medium">Analysis</h4>
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Dream Analysis</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Last updated: {selectedEntry.analysis.lastUpdated.toLocaleString()}
+                  </p>
+                </div>
                 <div className="space-y-4">
                   {selectedEntry.analysis.messages.map((message, index) => (
                     <div
@@ -272,7 +445,7 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                       >
                         <p className="text-sm whitespace-pre-wrap">{message.text}</p>
                         <p className="text-xs opacity-70 mt-1">
-                          {message.timestamp.toLocaleTimeString()}
+                          {new Date(message.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
                     </div>
@@ -281,26 +454,140 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
               </div>
             )}
           </div>
+
+          <DialogFooter>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedEntry(null)
+                  setShowAnalysis(false)
+                }}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Close
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowAnalysis(!showAnalysis)}
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                {showAnalysis ? 'Hide Analysis' : 'Show Analysis'}
+              </Button>
+              <Button
+                variant="default"
+                onClick={() => {
+                  if (selectedEntry) {
+                    handleAnalyzeClick(selectedEntry)
+                    setSelectedEntry(null)
+                    setShowAnalysis(false)
+                  }
+                }}
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                Analyze Dream
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={editingEntry !== null} onOpenChange={(open) => !open && setEditingEntry(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Edit Dream</DialogTitle>
+            <DialogTitle>Edit Dream Entry</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
+          <div className="space-y-6 mt-4">
             <Input
-              placeholder="Dream title..."
+              placeholder="Dream Title"
               value={editingEntry?.title || ''}
               onChange={(e) => setEditingEntry(editingEntry ? { ...editingEntry, title: e.target.value } : null)}
             />
             <Textarea
-              placeholder="Dream content..."
+              placeholder="Describe your dream..."
               value={editingEntry?.content || ''}
               onChange={(e) => setEditingEntry(editingEntry ? { ...editingEntry, content: e.target.value } : null)}
               className="min-h-[200px]"
             />
+            
+            <div className="grid grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Lucidity Level</label>
+                <div className="flex items-center">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setEditingEntry(editingEntry ? { ...editingEntry, lucidityLevel: i + 1 } : null)}
+                      className={`w-3 h-3 rounded-full mr-1.5 transition-colors ${
+                        i < (editingEntry?.lucidityLevel || 0) ? 'bg-purple-500' : 'bg-gray-200 hover:bg-purple-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {editingEntry?.lucidityLevel === 5 ? 'Fully Lucid' :
+                   editingEntry?.lucidityLevel === 4 ? 'Highly Lucid' :
+                   editingEntry?.lucidityLevel === 3 ? 'Moderately Lucid' :
+                   editingEntry?.lucidityLevel === 2 ? 'Slightly Lucid' :
+                   'Not Lucid'}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Mood Level</label>
+                <div className="flex items-center">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setEditingEntry(editingEntry ? { ...editingEntry, moodLevel: i + 1 } : null)}
+                      className={`w-3 h-3 rounded-full mr-1.5 transition-colors ${
+                        i < (editingEntry?.moodLevel || 0) ? 'bg-green-500' : 'bg-gray-200 hover:bg-green-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {editingEntry?.moodLevel === 5 ? 'Very Positive' :
+                   editingEntry?.moodLevel === 4 ? 'Positive' :
+                   editingEntry?.moodLevel === 3 ? 'Neutral' :
+                   editingEntry?.moodLevel === 2 ? 'Negative' :
+                   'Very Negative'}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Dream Clarity</label>
+                <div className="flex items-center">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setEditingEntry(editingEntry ? { ...editingEntry, clarity: i + 1 } : null)}
+                      className={`w-3 h-3 rounded-full mr-1.5 transition-colors ${
+                        i < (editingEntry?.clarity || 0) ? 'bg-blue-500' : 'bg-gray-200 hover:bg-blue-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {editingEntry?.clarity === 5 ? 'Crystal Clear' :
+                   editingEntry?.clarity === 4 ? 'Very Clear' :
+                   editingEntry?.clarity === 3 ? 'Moderately Clear' :
+                   editingEntry?.clarity === 2 ? 'Somewhat Hazy' :
+                   'Very Hazy'}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Tags</label>
+              <Input
+                placeholder="Add tags (comma separated)"
+                value={editingEntry?.tags?.join(', ') || ''}
+                onChange={(e) => setEditingEntry(editingEntry ? { 
+                  ...editingEntry, 
+                  tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
+                } : null)}
+                className="mt-2"
+              />
+            </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setEditingEntry(null)}>Cancel</Button>
               <Button 
