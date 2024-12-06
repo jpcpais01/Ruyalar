@@ -159,71 +159,78 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                   setShowAnalysis(false)
                 }}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-2">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <h3 className="font-semibold text-lg">{entry.title}</h3>
+                      <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                      <h3 className="font-semibold text-lg line-clamp-1">{entry.title}</h3>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-3">{entry.content}</p>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingEntry(entry)
+                        }}
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteEntry(entry.id)
+                        }}
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{entry.content}</p>
+                  <div className="flex items-center justify-between gap-2 mt-1">
                     <p className="text-xs text-muted-foreground">
                       {entry.date.toLocaleDateString(undefined, {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
-                      })} • {entry.date.toLocaleTimeString()}
+                      })}
                     </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setEditingEntry(entry)
-                      }}
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleAnalyzeClick(entry)
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      Analyse
-                    </Button>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteEntry(entry.id)
-                      }}
-                      variant="destructive"
-                      size="icon"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {entry.analysis && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedEntry(entry)
+                            setShowAnalysis(true)
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground h-7"
+                        >
+                          View Analysis
+                        </Button>
+                      )}
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleAnalyzeClick(entry)
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="h-7"
+                      >
+                        Analyse
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                {entry.analysis && (
-                  <div className="mt-2 pt-2 border-t">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedEntry(entry)
-                        setShowAnalysis(true)
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      View Analysis • {entry.analysis.lastUpdated.toLocaleString()}
-                    </Button>
-                  </div>
-                )}
               </div>
             ))}
             {filteredEntries.length === 0 && (
