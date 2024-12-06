@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { Clock, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { analyzeDream } from "../chat/chat-container"
+import { analyzeDream } from "@/lib/dream-analysis"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
