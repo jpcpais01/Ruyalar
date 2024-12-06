@@ -227,15 +227,6 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
         <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
           <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle>{selectedEntry?.title}</DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSelectedEntry(null)}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pt-4">
             <div className="space-y-2">

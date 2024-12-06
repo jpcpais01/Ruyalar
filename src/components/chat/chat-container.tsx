@@ -117,7 +117,7 @@ export function ChatContainer({ dreamId, dreamContent, onAnalysisComplete, onNew
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full max-h-full">
       <div className="flex-none flex items-center justify-between px-6 py-3 border-b bg-muted/50">
         <h2 className="text-lg font-semibold">Dream Analysis</h2>
         <div className="flex gap-2">
@@ -144,9 +144,9 @@ export function ChatContainer({ dreamId, dreamContent, onAnalysisComplete, onNew
         </div>
       </div>
       
-      <div className="relative flex-1 overflow-hidden">
-        <div className="absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20">
-          <div className="min-h-full px-6 py-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20">
+          <div className="px-6 py-4 space-y-4">
             {messages.map((message, index) => (
               <div
                 key={index}

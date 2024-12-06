@@ -1,29 +1,32 @@
 "use client"
 
-import { cn } from "@/lib/utils"
 import { LucideIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface NavButtonProps {
-  isActive: boolean
-  onClick: () => void
   icon: LucideIcon
-  className?: string
   label: string
+  isActive?: boolean
+  onClick?: () => void
 }
 
-export function NavButton({ isActive, onClick, icon: Icon, className, label }: NavButtonProps) {
+export function NavButton({
+  icon: Icon,
+  label,
+  isActive,
+  onClick
+}: NavButtonProps) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "px-3 py-1.5 rounded-lg transition-all duration-200 flex-1 text-sm flex items-center justify-center gap-2",
-        "hover:bg-accent hover:text-accent-foreground",
-        isActive && "bg-primary text-primary-foreground",
-        className
+        "flex flex-col items-center gap-1 px-4 py-2 transition-colors",
+        "hover:text-primary",
+        isActive ? "text-primary" : "text-muted-foreground"
       )}
     >
-      <Icon className="w-4 h-4" />
-      <span>{label}</span>
+      <Icon className="h-5 w-5" />
+      <span className="text-xs font-medium">{label}</span>
     </button>
   )
 }

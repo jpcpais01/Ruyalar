@@ -34,14 +34,12 @@ export default function Home() {
   const [entries, setEntries] = useState<DreamEntry[]>([])
   const [selectedDream, setSelectedDream] = useState<{ id: string, content: string } | null>(null)
   const [emblaRef, emblaApi] = useEmblaCarousel({
-    loop: false, 
+    loop: false,
     axis: "x",
-    dragFree: true,
-    startIndex: 0,
-    breakpoints: {
-      '(max-width: 768px)': { dragFree: true },
-      '(min-width: 769px)': { dragFree: false }
-    }
+    dragFree: false,
+    containScroll: "trimSnaps",
+    align: "center",
+    skipSnaps: false
   })
 
   const scrollTo = useCallback((index: number) => {
@@ -233,9 +231,44 @@ export default function Home() {
   if (!mounted) return null
 
   return (
-    <div className="relative flex flex-col h-screen overflow-hidden bg-background">
-      <header className="flex-none flex items-center justify-between px-6 py-3 border-b">
-        <div className="flex items-center space-x-6">
+    <main className="fixed inset-0 flex flex-col bg-background">
+      <div className="flex-none p-4 flex items-center justify-between border-b">
+        <h1 className="text-xl font-bold">Rüyalar</h1>
+        <ThemeToggle />
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="embla h-full">
+          <div className="embla__viewport h-full" ref={emblaRef}>
+            <div className="embla__container h-full">
+              <div className="embla__slide h-full overflow-hidden">
+                <ChatContainer
+                  dreamId={selectedDream?.id}
+                  dreamContent={selectedDream?.content}
+                  onAnalysisComplete={handleDreamAnalysis}
+                  onNewChat={handleNewChat}
+                />
+              </div>
+              <div className="embla__slide h-full overflow-hidden">
+                <JournalContainer
+                  entries={entries}
+                  onEntriesChange={handleEntriesUpdate}
+                  onAnalyze={handleJournalAnalyze}
+                />
+              </div>
+              <div className="embla__slide h-full overflow-hidden">
+                <HistoryContainer
+                  entries={entries}
+                  onEntriesChange={handleEntriesUpdate}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-none border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <nav className="flex justify-around py-2 px-safe">
           <NavButton
             icon={Brain}
             label="AI Analysis"
@@ -254,37 +287,8 @@ export default function Home() {
             isActive={currentSlide === 2}
             onClick={() => scrollTo(2)}
           />
-        </div>
-        <ThemeToggle />
-      </header>
-
-      <main className="flex-1 relative overflow-hidden">
-        <div className="embla h-full" ref={emblaRef}>
-          <div className="embla__container h-full">
-            <div className="embla__slide h-full">
-              <ChatContainer
-                dreamId={selectedDream?.id}
-                dreamContent={selectedDream?.content}
-                onAnalysisComplete={handleDreamAnalysis}
-                onNewChat={handleNewChat}
-              />
-            </div>
-            <div className="embla__slide h-full">
-              <JournalContainer
-                entries={entries}
-                onEntriesChange={handleEntriesUpdate}
-                onAnalyze={handleJournalAnalyze}
-              />
-            </div>
-            <div className="embla__slide h-full">
-              <HistoryContainer
-                entries={entries}
-                onEntriesChange={handleEntriesUpdate}
-              />
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+        </nav>
+      </div>
+    </main>
   )
 }
