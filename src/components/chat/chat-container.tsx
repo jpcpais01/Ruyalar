@@ -1,207 +1,206 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
-import { ChatMessage } from "./message"
-import { ChatInput } from "./chat-input"
-import { useTheme } from "next-themes"
-import { sendMessage, Message as ChatServiceMessage } from "@/lib/chat-service"
-
-// Create a custom event for tab switching
-export const switchToAnalysisTab = () => {
-  const event = new CustomEvent('switchToAnalysisTab');
-  window.dispatchEvent(event);
-}
-
-// Create a custom event for dream analysis
-export const analyzeDream = (content: string, id: string) => {
-  const event = new CustomEvent('analyzeDream', { 
-    detail: { content, id } 
-  });
-  window.dispatchEvent(event);
-  switchToAnalysisTab(); // Also trigger tab switch
-}
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Send, Loader2 } from "lucide-react"
+import { analyzeDream, resetConversation } from "@/lib/dream-analysis"
 
 interface Message {
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
+  text: string
+  isUser: boolean
+  timestamp: Date
 }
 
-export function ChatContainer({ dreamId: initialDreamId, dreamContent }: { dreamId?: string, dreamContent?: string }) {
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+interface ChatContainerProps {
+  dreamId?: string
+  dreamContent?: string
+  onAnalysisComplete?: (dreamId: string, messages: Message[]) => void
+  onNewChat?: () => void
+}
+
+export function ChatContainer({ dreamId, dreamContent, onAnalysisComplete, onNewChat }: ChatContainerProps) {
+  const [messages, setMessages] = useState<Message[]>([])
   const [currentMessage, setCurrentMessage] = useState("")
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      text: "Hello! I'm your dream analysis AI. Share your dream with me, and I'll help you understand its deeper meaning. ",
-      isUser: false,
-      timestamp: new Date(),
-    },
-  ])
   const [isLoading, setIsLoading] = useState(false)
-  const [dreamId, setDreamId] = useState(initialDreamId)
-  const { theme } = useTheme()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const initialDreamProcessed = useRef(false)
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, []);
-
-  const handleSendMessage = useCallback(async (message: string) => {
-    if (!message.trim()) return;
-
-    const userMessage: Message = {
-      text: message,
-      isUser: true,
-      timestamp: new Date(),
-    }
-
-    // Update messages immediately with user message
-    setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
-    setCurrentMessage("");
-
-    try {
-      // Convert messages to chat service format
-      const chatMessages: ChatServiceMessage[] = messages.map(msg => ({
-        role: msg.isUser ? 'user' as const : 'assistant' as const,
-        content: msg.text
-      }));
-
-      // Add the new message
-      chatMessages.push({
-        role: 'user' as const,
-        content: message
-      });
-
-      // Send to chat service
-      const response = await sendMessage(chatMessages);
-      
-      const aiMessage: Message = {
-        text: response.content,
-        isUser: false,
-        timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error('Error in chat:', error);
-      const errorMessage: Message = {
-        text: "I apologize, but I encountered an error. Please try again.",
-        isUser: false,
-        timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-      scrollToBottom();
-    }
-  }, [messages, scrollToBottom]);
-
+  // Reset state when dream changes
   useEffect(() => {
-    const handleAnalyzeDream = (event: CustomEvent<{ content: string, id: string }>) => {
-      const { content, id } = event.detail;
-      setCurrentMessage(content);
-      // Set the dream ID when analyzing
-      if (id) {
-        setDreamId(id);
-      }
-      // Reset messages to initial state before starting new analysis
-      setMessages([{
-        text: "Hello! I'm your dream analysis AI. Share your dream with me, and I'll help you understand its deeper meaning. ",
-        isUser: false,
-        timestamp: new Date(),
-      }]);
-      handleSendMessage(content);
-    };
+    if (dreamId) {
+      setMessages([])
+      initialDreamProcessed.current = false
+      resetConversation()
+    }
+  }, [dreamId])
 
-    window.addEventListener('analyzeDream', handleAnalyzeDream as EventListener);
-    return () => {
-      window.removeEventListener('analyzeDream', handleAnalyzeDream as EventListener);
-    };
-  }, [handleSendMessage]);
-
+  // Process initial dream content
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
-
-  const handleNewChat = () => {
-    setMessages([{
-      text: "Hello! I'm your dream analysis AI. Share your dream with me, and I'll help you understand its deeper meaning. ",
-      isUser: false,
-      timestamp: new Date(),
-    }]);
-    setCurrentMessage("");
-    setDreamId(undefined);
-  };
-
-  const handleSaveChat = () => {
-    if (!dreamId) return;
-    
-    const chatContent = messages.map(msg => `${msg.isUser ? 'You' : 'AI'}: ${msg.text}`).join('\n');
-    
-    try {
-      // Get existing entries
-      const saved = localStorage.getItem('journalEntries');
-      if (saved) {
-        const entries = JSON.parse(saved) as JournalEntry[];
-        const dreamEntry = entries.find((entry: JournalEntry) => entry.id === dreamId);
-        if (dreamEntry) {
-          // Remove any existing chat discussion
-          let content = dreamEntry.content;
-          const chatIndex = content.indexOf('\n\n--- Chat Discussion ---\n');
-          if (chatIndex !== -1) {
-            content = content.substring(0, chatIndex);
+    const processDream = async () => {
+      if (dreamContent && dreamId) {
+        setMessages([])
+        resetConversation()
+        
+        const userMessage = { text: dreamContent, isUser: true, timestamp: new Date() }
+        
+        setIsLoading(true)
+        try {
+          const analysis = await analyzeDream(dreamContent)
+          const aiMessage = { text: analysis, isUser: false, timestamp: new Date() }
+          const newMessages = [userMessage, aiMessage]
+          
+          setMessages(newMessages)
+        } catch (error) {
+          console.error('Error analyzing dream:', error)
+          const errorMessage = {
+            text: 'Sorry, I encountered an error while analyzing your dream. Please try again.',
+            isUser: false,
+            timestamp: new Date()
           }
-          
-          // Add the new chat discussion
-          dreamEntry.content = content + '\n\n--- Chat Discussion ---\n' + chatContent;
-          localStorage.setItem('journalEntries', JSON.stringify(entries));
-          
-          // Dispatch custom event to notify of the update
-          const event = new CustomEvent('journalEntriesUpdated', {
-            detail: { entries: entries }
-          });
-          window.dispatchEvent(event);
+          setMessages([userMessage, errorMessage])
+        } finally {
+          setIsLoading(false)
         }
       }
-    } catch (error) {
-      console.error('Error saving chat:', error);
     }
-  };
+
+    processDream()
+  }, [dreamContent, dreamId])
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleSendMessage = async () => {
+    if (!currentMessage.trim() || isLoading) return
+
+    const userMessage = { text: currentMessage, isUser: true, timestamp: new Date() }
+    setMessages(prev => [...prev, userMessage])
+    setCurrentMessage("")
+    setIsLoading(true)
+
+    try {
+      const analysis = await analyzeDream(currentMessage)
+      const aiMessage = { text: analysis, isUser: false, timestamp: new Date() }
+      
+      setMessages(prev => [...prev, aiMessage])
+    } catch (error) {
+      console.error('Error analyzing message:', error)
+      const errorMessage = {
+        text: 'Sorry, I encountered an error while processing your message. Please try again.',
+        isUser: false,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
+  const handleNewChat = () => {
+    setMessages([])
+    resetConversation()
+    setCurrentMessage("")
+    initialDreamProcessed.current = false
+    if (onNewChat) {
+      onNewChat()
+    }
+  }
 
   return (
-    <div className="flex flex-col h-full bg-background/50 overflow-hidden" data-chat-container>
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide">
-        <div className="flex flex-col py-4 space-y-4 w-full max-w-4xl mx-auto pl-6 pr-3">
-          {messages.map((message, index) => (
-            <ChatMessage
-              key={index}
-              message={message.text}
-              isUser={message.isUser}
-              timestamp={message.timestamp}
-            />
-          ))}
-          <div ref={messagesEndRef} />
+    <div className="flex flex-col h-full">
+      <div className="flex-none flex items-center justify-between px-6 py-3 border-b bg-muted/50">
+        <h2 className="text-lg font-semibold">Dream Analysis</h2>
+        <div className="flex gap-2">
+          {dreamId && messages.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (dreamId && onAnalysisComplete) {
+                  onAnalysisComplete(dreamId, messages)
+                }
+              }}
+            >
+              Save Analysis
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNewChat}
+          >
+            New Chat
+          </Button>
         </div>
       </div>
-      <div className="flex-none border-t w-full">
-        <div className="max-w-4xl mx-auto pl-6 pr-3 w-full">
-          <ChatInput 
-            onSend={handleSendMessage} 
-            onSaveChat={dreamId ? handleSaveChat : undefined}
-            onNew={handleNewChat}
-            disabled={isLoading}
-            placeholder="Share your dream..."
+      
+      <div className="relative flex-1 overflow-hidden">
+        <div className="absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20">
+          <div className="min-h-full px-6 py-4 space-y-4">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`rounded-lg px-4 py-2 max-w-[85%] ${
+                    message.isUser
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                  <p className="text-xs opacity-70 mt-1">
+                    {message.timestamp.toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="rounded-lg px-4 py-2 bg-muted">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-none p-4 border-t bg-background">
+        <div className="flex gap-2">
+          <Textarea
             value={currentMessage}
-            onChange={setCurrentMessage}
+            onChange={(e) => setCurrentMessage(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Ask a question about your dream..."
+            className="min-h-[60px] max-h-[180px]"
+            disabled={isLoading}
           />
+          <Button 
+            onClick={handleSendMessage}
+            disabled={!currentMessage.trim() || isLoading}
+            className="px-4"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
         </div>
       </div>
     </div>
   )
-}
-
-interface JournalEntry {
-  id: string;
-  content: string;
-  timestamp: Date;
-  title: string;
 }

@@ -1,47 +1,35 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { BookOpen, Plus, FileText, Search, Trash2 } from "lucide-react"
+import { useState, useMemo, useEffect } from "react"
+import { BookOpen, Plus, FileText, Search, Trash2, Brain, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { analyzeDream } from "../chat/chat-container"
 
 // Define a type for journal entries
-type JournalEntry = {
+interface JournalEntry {
   id: string;
   title: string;
   content: string;
   date: Date;
+  analysis?: {
+    messages: {
+      text: string;
+      isUser: boolean;
+      timestamp: Date;
+    }[];
+    lastUpdated: Date;
+  };
 }
 
-export function JournalContainer() {
-  // State for managing journal entries
-  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(() => {
-    // Initialize from localStorage if available
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('journalEntries');
-      if (saved) {
-        const entries = JSON.parse(saved);
-        // Convert date strings back to Date objects
-        return entries.map((entry: JournalEntry) => ({
-          ...entry,
-          date: new Date(entry.date)
-        }));
-      }
-      return [];
-    }
-    return [];
-  });
+interface JournalContainerProps {
+  entries: JournalEntry[];
+  onEntriesChange: (entries: JournalEntry[]) => void;
+  onAnalyze: (id: string, content: string) => void;
+}
 
-  // Save to localStorage whenever entries change
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('journalEntries', JSON.stringify(journalEntries));
-    }
-  }, [journalEntries]);
-
+export function JournalContainer({ entries, onEntriesChange, onAnalyze }: JournalContainerProps) {
   // State for new entry dialog
   const [open, setOpen] = useState(false)
   
@@ -51,179 +39,235 @@ export function JournalContainer() {
     content: ''
   })
 
+  // State for search query
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // State for selected entry
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
+
+  // State for showing analysis
+  const [showAnalysis, setShowAnalysis] = useState(false)
+
   // Function to handle adding a new journal entry
-  const handleSave = (title: string, content: string) => {
-    if (!title.trim() || !content.trim()) return;
+  const handleAddEntry = () => {
+    if (!newEntry.title.trim() || !newEntry.content.trim()) return;
     
-    const newEntry = {
+    const entry = {
       id: crypto.randomUUID(),
-      title,
-      content,
+      title: newEntry.title,
+      content: newEntry.content,
       date: new Date()
     };
 
-    const entries = [newEntry, ...journalEntries];
-    setJournalEntries(entries);
-    localStorage.setItem('journalEntries', JSON.stringify(entries));
+    const updatedEntries = [entry, ...entries]
+    onEntriesChange(updatedEntries)
     
-    // Dispatch custom event for real-time updates
-    const event = new CustomEvent('journalEntriesUpdated', { 
-      detail: { entries }  // Pass the entries directly as an object
-    });
-    window.dispatchEvent(event);
-
-    setNewEntry({ title: '', content: '' });
-    setOpen(false);
+    setNewEntry({ title: '', content: '' }); // Reset form
+    setOpen(false); // Close dialog
   };
 
   // Function to delete an entry
   const handleDeleteEntry = (id: string) => {
-    const entries = journalEntries.filter(entry => entry.id !== id);
-    setJournalEntries(entries);
-    localStorage.setItem('journalEntries', JSON.stringify(entries));
-    
-    // Dispatch custom event for real-time updates
-    const event = new CustomEvent('journalEntriesUpdated', { 
-      detail: { entries }
-    });
-    window.dispatchEvent(event);
+    const updatedEntries = entries.filter(entry => entry.id !== id)
+    onEntriesChange(updatedEntries)
   }
 
-  // Add state for selected entry and dialog
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-
-  const handleEntryClick = (entry: JournalEntry) => {
-    setSelectedEntry(entry);
-    setViewDialogOpen(true);
+  // Function to handle analyze click
+  const handleAnalyzeClick = (entry: JournalEntry) => {
+    const event = new CustomEvent('analyzeDream', {
+      detail: { content: entry.content, id: entry.id }
+    });
+    window.dispatchEvent(event);
   };
 
+  // Filtered entries based on search query
+  const filteredEntries = useMemo(() => {
+    if (!searchQuery) return entries
+    const query = searchQuery.toLowerCase()
+    return entries.filter(
+      entry => 
+        entry.title.toLowerCase().includes(query) || 
+        entry.content.toLowerCase().includes(query)
+    )
+  }, [entries, searchQuery])
+
   return (
-    <div className="absolute inset-0 overflow-y-auto py-8 scrollbar-hide overflow-x-hidden">
-      <div className="w-full max-w-xl mx-auto space-y-6 pl-6 pr-3 relative">
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent" />
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4 flex items-center justify-center gap-3 text-foreground">
-            <BookOpen className="w-10 h-10" />
-            Dream Journal
-          </h1>
-          <p className="text-muted-foreground max-w-md mx-auto mb-6 text-center">
-            Record, reflect, and explore the depths of your subconscious mind.
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          <div className="flex justify-center w-full">
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="w-full max-w-md">
-                  <Plus className="mr-2 h-4 w-4" /> New Journal Entry
+    <div className="flex flex-col h-full">
+      <div className="flex-none flex flex-col gap-4 px-6 py-4 bg-background/80 backdrop-blur-sm border-b">
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="lg" className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg">
+              <Plus className="h-5 w-5 mr-2" />
+              New Dream Entry
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Record Your Dream</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <Input
+                placeholder="Give your dream a title..."
+                value={newEntry.title}
+                onChange={(e) => setNewEntry({ ...newEntry, title: e.target.value })}
+              />
+              <Textarea
+                placeholder="Describe your dream in detail..."
+                value={newEntry.content}
+                onChange={(e) => setNewEntry({ ...newEntry, content: e.target.value })}
+                className="min-h-[200px]"
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                <Button 
+                  onClick={handleAddEntry} 
+                  disabled={!newEntry.title || !newEntry.content}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                >
+                  Save Dream
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="w-full max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="text-center">Create New Dream Journal Entry</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Input 
-                    placeholder="Entry Title" 
-                    value={newEntry.title}
-                    onChange={(e) => setNewEntry({...newEntry, title: e.target.value})}
-                    className="w-full"
-                  />
-                  <Textarea 
-                    placeholder="Describe your dream..." 
-                    value={newEntry.content}
-                    onChange={(e) => setNewEntry({...newEntry, content: e.target.value})}
-                    className="min-h-[200px] w-full"
-                  />
-                  <Button onClick={() => handleSave(newEntry.title, newEntry.content)} className="w-full">
-                    Save Entry
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          <div className="p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4 text-center">Recent Entries</h2>
-            
-            {journalEntries.length === 0 ? (
-              <div className="text-center text-muted-foreground py-6">
-                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No journal entries yet. Start recording your dreams!</p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {journalEntries.map((entry) => (
-                  <div 
-                    key={entry.id} 
-                    className="bg-muted p-4 rounded-md hover:bg-muted/80 transition-colors text-left cursor-pointer"
-                    onClick={() => handleEntryClick(entry)}
-                  >
-                    <h3 className="font-semibold mb-2 text-lg">{entry.title}</h3>
-                    <p className="text-muted-foreground line-clamp-2">{entry.content}</p>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-xs text-muted-foreground">
-                        {entry.date.toLocaleDateString()}
-                      </span>
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => analyzeDream(entry.content, entry.id)}
-                        >
-                          Analyse
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => handleDeleteEntry(entry.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <div className="flex items-center gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search dreams..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-full"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="relative flex-1 overflow-hidden">
+        <div className="absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20">
+          <div className="min-h-full px-6 py-4 space-y-4">
+            {filteredEntries.map((entry) => (
+              <div
+                key={entry.id}
+                className="group relative bg-card hover:bg-accent rounded-lg p-4 transition-colors border shadow-sm"
+                onClick={() => {
+                  setSelectedEntry(entry)
+                  setShowAnalysis(false)
+                }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <h3 className="font-semibold text-lg">{entry.title}</h3>
                     </div>
+                    <p className="text-sm text-muted-foreground line-clamp-3">{entry.content}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {entry.date.toLocaleDateString(undefined, {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })} • {entry.date.toLocaleTimeString()}
+                    </p>
                   </div>
-                ))}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleAnalyzeClick(entry)
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Analyse
+                    </Button>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteEntry(entry.id)
+                      }}
+                      variant="destructive"
+                      size="icon"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                {entry.analysis && (
+                  <div className="mt-2 pt-2 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedEntry(entry)
+                        setShowAnalysis(true)
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      View Analysis • {entry.analysis.lastUpdated.toLocaleString()}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {filteredEntries.length === 0 && (
+              <div className="flex flex-col items-center justify-center text-center p-8 text-muted-foreground">
+                <BookOpen className="h-12 w-12 mb-4" />
+                <h3 className="font-semibold mb-2">No dreams yet</h3>
+                <p className="text-sm">Start journaling your dreams by clicking the New Dream Entry button above.</p>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* View Entry Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="w-[90vw] max-w-2xl mx-auto max-h-[85vh] flex flex-col">
-          <DialogHeader className="flex-none">
-            <DialogTitle className="text-2xl font-bold mb-2 break-words">
-              {selectedEntry?.title}
-            </DialogTitle>
-            <div className="text-sm text-muted-foreground border-b pb-4">
-              {selectedEntry?.date.toLocaleDateString(undefined, {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </div>
-          </DialogHeader>
-          <div className="mt-4 flex-1 overflow-y-auto pr-2">
-            <div className="space-y-4">
-              <p className="text-foreground whitespace-pre-wrap break-words leading-relaxed">
-                {selectedEntry?.content}
-              </p>
-            </div>
-          </div>
-          <div className="flex-none pt-4 mt-4 border-t">
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => setViewDialogOpen(false)}
+      <Dialog open={selectedEntry !== null} onOpenChange={(open) => !open && setSelectedEntry(null)}>
+        <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
+          <DialogHeader className="flex flex-row items-center justify-between">
+            <DialogTitle>{selectedEntry?.title}</DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedEntry(null)}
+              className="h-8 w-8 p-0"
             >
-              Close
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
             </Button>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pt-4">
+            <div className="space-y-2">
+              <h4 className="font-medium">Dream Content</h4>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedEntry?.content}</p>
+            </div>
+            {selectedEntry?.analysis && showAnalysis && (
+              <div className="space-y-2 pt-4 border-t">
+                <h4 className="font-medium">Analysis</h4>
+                <div className="space-y-4">
+                  {selectedEntry.analysis.messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`rounded-lg px-4 py-2 max-w-[85%] ${
+                          message.isUser
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                        <p className="text-xs opacity-70 mt-1">
+                          {message.timestamp.toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

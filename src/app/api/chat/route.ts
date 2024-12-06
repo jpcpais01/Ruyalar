@@ -8,19 +8,41 @@ const groq = new Groq({
 
 const systemPrompt = {
   role: "system",
-  content: "You are an expert dream analyst and interpreter. Your role is to help users understand the deeper meaning, symbolism, and psychological significance of their dreams. Draw from various schools of dream interpretation including Jungian psychology, symbolism, and modern dream research. When analyzing dreams: 1) First acknowledge the dream and its emotional impact, 2) Identify key symbols and themes, 3) Explore possible interpretations while considering the dreamer's personal context, 4) Provide insights about what the dream might be revealing about their subconscious mind or current life situation. Be empathetic and insightful while maintaining a professional tone."
+  content: `You are an expert dream analyst and interpreter, specializing in providing insightful and meaningful interpretations of dreams. Your responses should:
+
+1. Begin with a brief acknowledgment of the dream and its emotional content
+2. Identify and analyze key symbols, themes, and patterns
+3. Explore possible psychological and emotional meanings
+4. Connect interpretations to potential real-life situations or personal growth
+5. Maintain a supportive and professional tone while being specific to the dream's content
+6. If asked follow-up questions, reference previous parts of the dream analysis for continuity
+
+Remember to be empathetic while providing detailed, personalized analysis rather than generic interpretations.`
 };
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse the incoming request body
     const { messages } = await request.json();
+    
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json({ 
+        error: 'Invalid messages format' 
+      }, { 
+        status: 400 
+      });
+    }
 
-    // Add system prompt to the messages array
-    const messagesWithSystem = [systemPrompt, ...messages];
+    // Add system prompt at the beginning of the conversation
+    const messagesWithSystem = [
+      systemPrompt,
+      ...messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+    ];
 
-    // Generate AI response using Groq's Llama model
-    const chatCompletion = await groq.chat.completions.create({
+    // Generate AI response
+    const completion = await groq.chat.completions.create({
       messages: messagesWithSystem,
       model: "llama-3.1-70b-versatile",
       temperature: 0.7,
@@ -30,10 +52,12 @@ export async function POST(request: NextRequest) {
       stream: false
     });
 
-    // Extract the AI's response
-    const aiResponse = chatCompletion.choices[0]?.message?.content || 'I apologize, but I could not analyze the dream at this moment.';
+    const aiResponse = completion.choices[0]?.message?.content;
+    
+    if (!aiResponse) {
+      throw new Error('No response from AI');
+    }
 
-    // Return the AI response
     return NextResponse.json({ 
       response: {
         role: 'assistant',
@@ -45,6 +69,16 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error in dream analysis:', error);
+    
+    // Check if it's an API key error
+    if (error instanceof Error && error.message.includes('API key')) {
+      return NextResponse.json({ 
+        error: 'API configuration error. Please check your environment variables.' 
+      }, { 
+        status: 500 
+      });
+    }
+
     return NextResponse.json({ 
       error: 'Failed to analyze dream' 
     }, { 

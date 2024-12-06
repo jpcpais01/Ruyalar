@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, memo } from "react"
 import { useTheme } from "next-themes"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { NavButton } from "@/components/nav-button"
@@ -11,62 +11,166 @@ import useEmblaCarousel from "embla-carousel-react"
 import { Brain, BookOpen, Clock } from "lucide-react"
 import { JournalDialog } from "@/components/journal/journal-dialog"
 
+interface DreamEntry {
+  id: string
+  title: string
+  content: string
+  date: Date
+  analysis?: {
+    messages: {
+      text: string
+      isUser: boolean
+      timestamp: Date
+    }[]
+    lastUpdated: Date
+  }
+}
+
 export default function Home() {
   const [mounted, setMounted] = useState(false)
   const { theme } = useTheme()
-  const [currentSlide, setCurrentSlide] = useState(1)  // Start with Journal page
+  const [currentSlide, setCurrentSlide] = useState(0)
   const [journalOpen, setJournalOpen] = useState(false)
+  const [entries, setEntries] = useState<DreamEntry[]>([])
   const [selectedDream, setSelectedDream] = useState<{ id: string, content: string } | null>(null)
-  
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
     loop: false, 
     axis: "x",
-    dragFree: false,
-    startIndex: 1  // Start with Journal page
+    dragFree: true,
+    startIndex: 0,
+    breakpoints: {
+      '(max-width: 768px)': { dragFree: true },
+      '(min-width: 769px)': { dragFree: false }
+    }
   })
 
+  const scrollTo = useCallback((index: number) => {
+    emblaApi?.scrollTo(index)
+    setCurrentSlide(index)
+  }, [emblaApi])
+
+  // Handle dream analysis event
   useEffect(() => {
-    const handleAnalyzeDream = (event: CustomEvent<{ content: string, id: string }>) => {
+    const handleAnalyzeDream = (event: CustomEvent<{ content: string; id: string }>) => {
       const { content, id } = event.detail;
       setSelectedDream({ id, content });
+      scrollTo(0); // Switch to analysis tab
     };
 
     window.addEventListener('analyzeDream', handleAnalyzeDream as EventListener);
     return () => {
       window.removeEventListener('analyzeDream', handleAnalyzeDream as EventListener);
     };
-  }, []);
+  }, [scrollTo]);
 
   useEffect(() => {
     if (emblaApi) {
-      emblaApi.scrollTo(1) // Ensure we start at Journal page
+      emblaApi.scrollTo(0) // Ensure we start at AI Analysis page
     }
   }, [emblaApi])
 
-  const slides = [
-    { 
-      component: () => <ChatContainer 
-        dreamId={selectedDream?.id} 
-        dreamContent={selectedDream?.content} 
-      />, 
-      icon: Brain, 
-      label: "AI Analysis" 
-    },
-    { component: () => <JournalContainer />, icon: BookOpen, label: "Journal" },
-    { 
-      component: () => <HistoryContainer onDreamSelect={(dream) => {
-        setSelectedDream(dream);
-        scrollTo(0); // Switch to chat tab (index 0)
-      }} />, 
-      icon: Clock, 
-      label: "History" 
+  useEffect(() => {
+    if (emblaApi) {
+      emblaApi.on('select', () => {
+        setCurrentSlide(emblaApi.selectedScrollSnap())
+      })
     }
-  ]
-
-  const scrollTo = useCallback((index: number) => {
-    emblaApi?.scrollTo(index)
-    setCurrentSlide(index)
   }, [emblaApi])
+
+  // Load entries on mount
+  useEffect(() => {
+    const loadedEntries = localStorage.getItem('dreamEntries');
+    if (loadedEntries) {
+      try {
+        const parsed = JSON.parse(loadedEntries);
+        const entriesWithDates = parsed.map((entry: any) => ({
+          ...entry,
+          date: new Date(entry.date),
+          analysis: entry.analysis ? {
+            ...entry.analysis,
+            messages: entry.analysis.messages.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            })),
+            lastUpdated: new Date(entry.analysis.lastUpdated)
+          } : undefined
+        }));
+        setEntries(entriesWithDates);
+      } catch (error) {
+        console.error('Error loading entries:', error);
+      }
+    }
+  }, []);
+
+  const handleEntriesUpdate = useCallback((newEntries: DreamEntry[]) => {
+    // Ensure dates are properly handled
+    const entriesWithDates = newEntries.map(entry => ({
+      ...entry,
+      date: entry.date instanceof Date ? entry.date : new Date(entry.date),
+      analysis: entry.analysis ? {
+        ...entry.analysis,
+        messages: entry.analysis.messages.map(msg => ({
+          ...msg,
+          timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp)
+        })),
+        lastUpdated: entry.analysis.lastUpdated instanceof Date ? 
+          entry.analysis.lastUpdated : new Date(entry.analysis.lastUpdated)
+      } : undefined
+    }));
+
+    setEntries(entriesWithDates);
+    
+    // Convert dates to ISO strings for storage
+    const entriesForStorage = entriesWithDates.map(entry => ({
+      ...entry,
+      date: entry.date.toISOString(),
+      analysis: entry.analysis ? {
+        ...entry.analysis,
+        messages: entry.analysis.messages.map(msg => ({
+          ...msg,
+          timestamp: msg.timestamp.toISOString()
+        })),
+        lastUpdated: entry.analysis.lastUpdated.toISOString()
+      } : undefined
+    }));
+    localStorage.setItem('dreamEntries', JSON.stringify(entriesForStorage));
+  }, []);
+
+  const handleDreamAnalysis = useCallback((dreamId: string, messages: { text: string; isUser: boolean; timestamp: Date }[]) => {
+    setEntries(prevEntries => {
+      const entryIndex = prevEntries.findIndex(entry => entry.id === dreamId);
+      if (entryIndex === -1) return prevEntries;
+
+      const newEntries = [...prevEntries];
+      newEntries[entryIndex] = {
+        ...newEntries[entryIndex],
+        analysis: {
+          messages,
+          lastUpdated: new Date()
+        }
+      };
+
+      // Save to localStorage with proper date handling
+      const entriesForStorage = newEntries.map(entry => ({
+        ...entry,
+        date: entry.date.toISOString(),
+        analysis: entry.analysis ? {
+          ...entry.analysis,
+          messages: entry.analysis.messages.map(msg => ({
+            ...msg,
+            timestamp: msg.timestamp.toISOString()
+          })),
+          lastUpdated: entry.analysis.lastUpdated.toISOString()
+        } : undefined
+      }));
+      localStorage.setItem('dreamEntries', JSON.stringify(entriesForStorage));
+      return newEntries;
+    });
+  }, []);
+
+  const handleNewChat = useCallback(() => {
+    setSelectedDream(null) // Clear the selected dream when starting a new chat
+  }, []);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return
@@ -99,50 +203,57 @@ export default function Home() {
   if (!mounted) return null
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="flex-none h-16 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center h-full relative px-4">
-          <div className="absolute left-4">
-            <div className="w-10" /> {/* Same width as theme toggle */}
-          </div>
-          <div className="flex-1 flex justify-center">
-            <div className="font-semibold text-primary">
-              Ruyal
-            </div>
-          </div>
-          <div className="absolute right-4">
-            <ThemeToggle />
-          </div>
+    <div className="relative flex flex-col h-screen overflow-hidden bg-background">
+      <header className="flex-none flex items-center justify-between px-6 py-3 border-b">
+        <div className="flex items-center space-x-6">
+          <NavButton
+            icon={Brain}
+            label="AI Analysis"
+            active={currentSlide === 0}
+            onClick={() => scrollTo(0)}
+          />
+          <NavButton
+            icon={BookOpen}
+            label="Journal"
+            active={currentSlide === 1}
+            onClick={() => scrollTo(1)}
+          />
+          <NavButton
+            icon={Clock}
+            label="History"
+            active={currentSlide === 2}
+            onClick={() => scrollTo(2)}
+          />
         </div>
+        <ThemeToggle />
       </header>
-      <div className="flex-1 min-h-0 overflow-hidden">
+
+      <main className="flex-1 relative overflow-hidden">
         <div className="embla h-full" ref={emblaRef}>
           <div className="embla__container h-full">
-            {slides.map((slide, index) => (
-              <div key={index} className="embla__slide flex-[0_0_100%] min-w-0 h-full relative flex items-center justify-center">
-                {slide.component()}
-              </div>
-            ))}
+            <div className="embla__slide h-full">
+              <ChatContainer
+                dreamId={selectedDream?.id}
+                dreamContent={selectedDream?.content}
+                onAnalysisComplete={handleDreamAnalysis}
+                onNewChat={handleNewChat}
+              />
+            </div>
+            <div className="embla__slide h-full">
+              <JournalContainer
+                entries={entries}
+                onEntriesChange={handleEntriesUpdate}
+              />
+            </div>
+            <div className="embla__slide h-full">
+              <HistoryContainer
+                entries={entries}
+                onEntriesChange={handleEntriesUpdate}
+              />
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Navigation - fixed height */}
-      <div className="flex-none h-16 px-4 flex gap-2 border-t border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        {slides.map((slide, index) => (
-          <NavButton
-            key={index}
-            isActive={currentSlide === index}
-            onClick={() => scrollTo(index)}
-            label={slide.label}
-            icon={slide.icon}
-          />
-        ))}
-      </div>
-      <JournalDialog 
-        open={journalOpen} 
-        onOpenChange={setJournalOpen}
-      />
+      </main>
     </div>
   )
 }
