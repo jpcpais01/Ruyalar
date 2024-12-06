@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { BookOpen, Plus, FileText, Search, Trash2, Brain, X } from "lucide-react"
+import { BookOpen, Plus, FileText, Search, Trash2, Brain, X, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -47,6 +47,9 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
 
   // State for showing analysis
   const [showAnalysis, setShowAnalysis] = useState(false)
+
+  // State for editing entry
+  const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
 
   // Function to handle adding a new journal entry
   const handleAddEntry = () => {
@@ -176,6 +179,17 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                     <Button
                       onClick={(e) => {
                         e.stopPropagation()
+                        setEditingEntry(entry)
+                      }}
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation()
                         handleAnalyzeClick(entry)
                       }}
                       className="text-xs text-muted-foreground hover:text-foreground"
@@ -259,6 +273,44 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                 </div>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editingEntry !== null} onOpenChange={(open) => !open && setEditingEntry(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Dream</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Input
+              placeholder="Dream title..."
+              value={editingEntry?.title || ''}
+              onChange={(e) => setEditingEntry(editingEntry ? { ...editingEntry, title: e.target.value } : null)}
+            />
+            <Textarea
+              placeholder="Dream content..."
+              value={editingEntry?.content || ''}
+              onChange={(e) => setEditingEntry(editingEntry ? { ...editingEntry, content: e.target.value } : null)}
+              className="min-h-[200px]"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditingEntry(null)}>Cancel</Button>
+              <Button 
+                onClick={() => {
+                  if (editingEntry) {
+                    const updatedEntries = entries.map(entry => 
+                      entry.id === editingEntry.id ? editingEntry : entry
+                    )
+                    onEntriesChange(updatedEntries)
+                    setEditingEntry(null)
+                  }
+                }}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              >
+                Save Changes
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
