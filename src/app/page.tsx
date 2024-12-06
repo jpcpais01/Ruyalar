@@ -202,6 +202,15 @@ export default function Home() {
     });
   }, []);
 
+  const handleJournalAnalyze = useCallback((id: string, content: string) => {
+    const messages = [{
+      text: content,
+      isUser: true,
+      timestamp: new Date()
+    }];
+    handleDreamAnalysis(id, messages);
+  }, [handleDreamAnalysis]);
+
   const handleNewChat = useCallback(() => {
     setSelectedDream(null) // Clear the selected dream when starting a new chat
   }, []);
@@ -230,19 +239,19 @@ export default function Home() {
           <NavButton
             icon={Brain}
             label="AI Analysis"
-            active={currentSlide === 0}
+            isActive={currentSlide === 0}
             onClick={() => scrollTo(0)}
           />
           <NavButton
             icon={BookOpen}
             label="Journal"
-            active={currentSlide === 1}
+            isActive={currentSlide === 1}
             onClick={() => scrollTo(1)}
           />
           <NavButton
             icon={Clock}
             label="History"
-            active={currentSlide === 2}
+            isActive={currentSlide === 2}
             onClick={() => scrollTo(2)}
           />
         </div>
@@ -264,6 +273,7 @@ export default function Home() {
               <JournalContainer
                 entries={entries}
                 onEntriesChange={handleEntriesUpdate}
+                onAnalyze={handleJournalAnalyze}
               />
             </div>
             <div className="embla__slide h-full">
