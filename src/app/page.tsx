@@ -94,12 +94,26 @@ export default function Home() {
     if (loadedEntries) {
       try {
         const parsed = JSON.parse(loadedEntries);
-        const entriesWithDates = parsed.map((entry: any) => ({
+        const entriesWithDates = parsed.map((entry: Omit<DreamEntry, 'date' | 'analysis'> & {
+          date: string;
+          analysis?: {
+            messages: {
+              text: string;
+              isUser: boolean;
+              timestamp: string;
+            }[];
+            lastUpdated: string;
+          };
+        }) => ({
           ...entry,
           date: new Date(entry.date),
           analysis: entry.analysis ? {
             ...entry.analysis,
-            messages: entry.analysis.messages.map((msg: any) => ({
+            messages: entry.analysis.messages.map((msg: {
+              text: string;
+              isUser: boolean;
+              timestamp: string;
+            }) => ({
               ...msg,
               timestamp: new Date(msg.timestamp)
             })),
