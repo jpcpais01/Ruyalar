@@ -29,7 +29,8 @@ interface DreamEntry {
 export default function Home() {
   const [mounted, setMounted] = useState(false)
   const { theme } = useTheme()
-  const [currentSlide, setCurrentSlide] = useState(0)
+  const [currentSlide, setCurrentSlide] = useState(1)
+  const [previousSlide, setPreviousSlide] = useState(1)
   const [journalOpen, setJournalOpen] = useState(false)
   const [entries, setEntries] = useState<DreamEntry[]>([])
   const [selectedDream, setSelectedDream] = useState<{ id: string, content: string } | null>(null)
@@ -39,7 +40,8 @@ export default function Home() {
     dragFree: false,
     containScroll: "trimSnaps",
     align: "center",
-    skipSnaps: false
+    skipSnaps: false,
+    startIndex: 1 // Start at Journal page
   })
 
   const scrollTo = useCallback((index: number) => {
@@ -80,6 +82,7 @@ export default function Home() {
     const handleAnalyzeDream = (event: CustomEvent<{ content: string; id: string }>) => {
       const { content, id } = event.detail;
       setSelectedDream({ id, content });
+      setPreviousSlide(currentSlide); // Store current slide
       scrollTo(0); // Switch to analysis tab
     };
 
@@ -87,13 +90,11 @@ export default function Home() {
     return () => {
       window.removeEventListener('analyzeDream', handleAnalyzeDream as EventListener);
     };
-  }, [scrollTo]);
+  }, [scrollTo, currentSlide]);
 
   useEffect(() => {
-    if (emblaApi) {
-      emblaApi.scrollTo(0) // Ensure we start at AI Analysis page
-    }
-  }, [emblaApi])
+    setMounted(true)
+  }, [])
 
   // Load entries on mount
   useEffect(() => {
@@ -223,10 +224,6 @@ export default function Home() {
       window.removeEventListener('switchToAnalysisTab', handleSwitchToAnalysisTab);
     };
   }, [scrollTo]);
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   if (!mounted) return null
 
