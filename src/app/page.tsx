@@ -49,6 +49,17 @@ export default function Home() {
     setCurrentSlide(index)
   }, [emblaApi])
 
+  const onPointerDown = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!emblaApi) return
+    event.preventDefault()
+    emblaApi.pointerDown(event)
+  }, [emblaApi])
+
+  const onPointerUp = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!emblaApi) return
+    emblaApi.pointerUp(event)
+  }, [emblaApi])
+
   // Handle dream analysis event
   useEffect(() => {
     const handleAnalyzeDream = (event: CustomEvent<{ content: string; id: string }>) => {
