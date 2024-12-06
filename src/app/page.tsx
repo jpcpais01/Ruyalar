@@ -33,7 +33,7 @@ export default function Home() {
   const [journalOpen, setJournalOpen] = useState(false)
   const [entries, setEntries] = useState<DreamEntry[]>([])
   const [selectedDream, setSelectedDream] = useState<{ id: string, content: string } | null>(null)
-  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+  const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false, 
     axis: "x",
     dragFree: true,
@@ -49,15 +49,32 @@ export default function Home() {
     setCurrentSlide(index)
   }, [emblaApi])
 
-  const onPointerDown = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!emblaApi) return
-    event.preventDefault()
-    emblaApi.pointerDown(event)
+  useEffect(() => {
+    if (emblaApi) {
+      const onSelect = () => {
+        setCurrentSlide(emblaApi.selectedScrollSnap())
+      }
+      
+      emblaApi.on('select', onSelect)
+      emblaApi.on('reInit', onSelect)
+      
+      return () => {
+        emblaApi.off('select', onSelect)
+        emblaApi.off('reInit', onSelect)
+      }
+    }
   }, [emblaApi])
 
-  const onPointerUp = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!emblaApi) return
-    emblaApi.pointerUp(event)
+  useEffect(() => {
+    if (emblaApi) {
+      emblaApi.on('pointerDown', () => {
+        // Handle pointer down if needed
+      })
+      
+      emblaApi.on('pointerUp', () => {
+        // Handle pointer up if needed
+      })
+    }
   }, [emblaApi])
 
   // Handle dream analysis event
@@ -77,14 +94,6 @@ export default function Home() {
   useEffect(() => {
     if (emblaApi) {
       emblaApi.scrollTo(0) // Ensure we start at AI Analysis page
-    }
-  }, [emblaApi])
-
-  useEffect(() => {
-    if (emblaApi) {
-      emblaApi.on('select', () => {
-        setCurrentSlide(emblaApi.selectedScrollSnap())
-      })
     }
   }, [emblaApi])
 
@@ -196,19 +205,6 @@ export default function Home() {
   const handleNewChat = useCallback(() => {
     setSelectedDream(null) // Clear the selected dream when starting a new chat
   }, []);
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return
-    setCurrentSlide(emblaApi.selectedScrollSnap())
-  }, [emblaApi])
-
-  useEffect(() => {
-    if (!emblaApi) return
-    emblaApi.on('select', onSelect)
-    return () => {
-      emblaApi.off('select', onSelect)
-    }
-  }, [emblaApi, onSelect])
 
   useEffect(() => {
     const handleSwitchToAnalysisTab = () => {
