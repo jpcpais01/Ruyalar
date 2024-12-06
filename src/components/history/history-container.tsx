@@ -297,16 +297,6 @@ export function HistoryContainer({ entries, onEntriesChange, onDreamSelect }: Hi
           <DialogFooter>
             <div className="flex items-center gap-2">
               <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedEntry(null)
-                  setShowAnalysis(false)
-                }}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Close
-              </Button>
-              <Button
                 variant="default"
                 onClick={() => {
                   if (selectedEntry) {

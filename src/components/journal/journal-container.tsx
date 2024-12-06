@@ -459,16 +459,6 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setSelectedEntry(null)
-                  setShowAnalysis(false)
-                }}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Close
-              </Button>
-              <Button
-                variant="outline"
                 onClick={() => setShowAnalysis(!showAnalysis)}
               >
                 <Brain className="h-4 w-4 mr-2" />
