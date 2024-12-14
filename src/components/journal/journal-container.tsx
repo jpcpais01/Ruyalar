@@ -157,7 +157,7 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
             <DialogHeader>
               <DialogTitle>New Dream Entry</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 mt-4">
+            <div className="flex flex-col gap-4">
               <div>
                 <Input
                   placeholder="Dream Title"
@@ -171,53 +171,8 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                   placeholder="Describe your dream..."
                   value={newEntry.content}
                   onChange={(e) => setNewEntry({ ...newEntry, content: e.target.value })}
-                  className="min-h-[200px]"
+                  className="min-h-[120px] max-h-[120px]"
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Lucidity Level (1-5)</label>
-                <input
-                  type="range"
-                  min="1"
-                  max="5"
-                  value={newEntry.lucidityLevel}
-                  onChange={(e) => setNewEntry({ ...newEntry, lucidityLevel: parseInt(e.target.value) })}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Not Lucid</span>
-                  <span>Fully Lucid</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Mood Level (1-5)</label>
-                <input
-                  type="range"
-                  min="1"
-                  max="5"
-                  value={newEntry.moodLevel}
-                  onChange={(e) => setNewEntry({ ...newEntry, moodLevel: parseInt(e.target.value) })}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Negative</span>
-                  <span>Positive</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Dream Clarity (1-5)</label>
-                <input
-                  type="range"
-                  min="1"
-                  max="5"
-                  value={newEntry.clarity}
-                  onChange={(e) => setNewEntry({ ...newEntry, clarity: parseInt(e.target.value) })}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Hazy</span>
-                  <span>Crystal Clear</span>
-                </div>
               </div>
               <div>
                 <Input
@@ -226,7 +181,54 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                   className="w-full"
                 />
               </div>
-              <div className="flex justify-end">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Lucidity Level</label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={newEntry.lucidityLevel}
+                    onChange={(e) => setNewEntry({ ...newEntry, lucidityLevel: parseInt(e.target.value) })}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Not Lucid</span>
+                    <span>Fully Lucid</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Mood Level</label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={newEntry.moodLevel}
+                    onChange={(e) => setNewEntry({ ...newEntry, moodLevel: parseInt(e.target.value) })}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Negative</span>
+                    <span>Positive</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Dream Clarity</label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={newEntry.clarity}
+                    onChange={(e) => setNewEntry({ ...newEntry, clarity: parseInt(e.target.value) })}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Hazy</span>
+                    <span>Crystal Clear</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end pt-2">
                 <Button onClick={handleAddEntry}>Save Dream</Button>
               </div>
             </div>
@@ -502,7 +504,7 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
             
             <div className="grid grid-cols-3 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Lucidity Level</label>
+                <div className="font-medium">Lucidity Level</div>
                 <div className="flex items-center">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <button
@@ -523,7 +525,7 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Mood Level</label>
+                <div className="font-medium">Mood Level</div>
                 <div className="flex items-center">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <button
@@ -544,7 +546,7 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Dream Clarity</label>
+                <div className="font-medium">Dream Clarity</div>
                 <div className="flex items-center">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <button
