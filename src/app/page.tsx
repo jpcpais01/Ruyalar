@@ -38,6 +38,7 @@ class DreamEntry {
   timestamp: Date
   lastUpdated: Date
   showInJournal: boolean
+  tags: string[]
 
   constructor(data: Partial<DreamEntry> = {}) {
     this.id = data.id || crypto.randomUUID()
@@ -55,6 +56,7 @@ class DreamEntry {
     this.timestamp = data.timestamp || new Date()
     this.lastUpdated = data.lastUpdated || new Date()
     this.showInJournal = data.showInJournal ?? true
+    this.tags = data.tags || []
   }
 }
 
@@ -147,6 +149,7 @@ export default function Home() {
         }) => new DreamEntry({
           ...entry,
           date: new Date(entry.date),
+          tags: entry.tags || [], // Ensure tags are always present
           analysis: entry.analysis ? {
             ...entry.analysis,
             messages: entry.analysis.messages.map((msg: {
@@ -172,6 +175,7 @@ export default function Home() {
     const entriesWithDates = newEntries.map(entry => new DreamEntry({
       ...entry,
       date: entry.date instanceof Date ? entry.date : new Date(entry.date),
+      tags: entry.tags || [], // Ensure tags are always present
       analysis: entry.analysis ? {
         ...entry.analysis,
         messages: entry.analysis.messages.map(msg => ({
@@ -189,6 +193,7 @@ export default function Home() {
     const entriesForStorage = entriesWithDates.map(entry => ({
       ...entry,
       date: entry.date.toISOString(),
+      tags: entry.tags || [], // Ensure tags are always present
       analysis: entry.analysis ? {
         ...entry.analysis,
         messages: entry.analysis.messages.map(msg => ({
@@ -222,6 +227,7 @@ export default function Home() {
       const entriesForStorage = newEntries.map(entry => ({
         ...entry,
         date: entry.date.toISOString(),
+        tags: entry.tags || [], // Ensure tags are always present
         analysis: entry.analysis ? {
           ...entry.analysis,
           messages: entry.analysis.messages.map(msg => ({
