@@ -7,46 +7,17 @@ import { analyzeDream } from "@/lib/dream-analysis"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
-
-interface JournalEntry {
-  id: string;
-  title: string;
-  content: string;
-  date: Date;
-  lucidityLevel: number;
-  moodLevel: number;
-  emotions: string[];
-  clarity: number;
-  tags: string[];
-  analysis?: {
-    messages: {
-      text: string;
-      isUser: boolean;
-      timestamp: Date;
-    }[];
-    lastUpdated: Date;
-  };
-  messages: {
-    text: string;
-    isUser: boolean;
-    timestamp: Date;
-  }[];
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-  lastUpdated: Date;
-  showInJournal: boolean;
-}
+import { DreamEntryType } from "@/types/dream"
 
 interface HistoryContainerProps {
-  entries: JournalEntry[];
-  onEntriesChange: (entries: JournalEntry[]) => void;
+  entries: DreamEntryType[];
+  onEntriesChange: (entries: DreamEntryType[]) => void;
   onDreamSelect?: (dream: { id: string, content: string }) => void;
 }
 
 export function HistoryContainer({ entries, onEntriesChange, onDreamSelect }: HistoryContainerProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
+  const [selectedEntry, setSelectedEntry] = useState<DreamEntryType | null>(null)
   const [showAnalysis, setShowAnalysis] = useState(false)
 
   const filteredEntries = useMemo(() => {
@@ -76,7 +47,7 @@ export function HistoryContainer({ entries, onEntriesChange, onDreamSelect }: Hi
   }
 
   // Function to handle analyze click
-  const handleAnalyzeClick = (entry: JournalEntry) => {
+  const handleAnalyzeClick = (entry: DreamEntryType) => {
     if (onDreamSelect) {
       onDreamSelect({ id: entry.id, content: entry.content });
     }

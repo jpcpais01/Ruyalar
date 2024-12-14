@@ -10,8 +10,9 @@ import { HistoryContainer } from "@/components/history/history-container"
 import useEmblaCarousel from "embla-carousel-react"
 import { Brain, BookOpen, Clock } from "lucide-react"
 import { JournalDialog } from "@/components/journal/journal-dialog"
+import { DreamEntryType } from "@/types/dream"
 
-class DreamEntry {
+class DreamEntry implements DreamEntryType {
   id: string
   title: string
   content: string
@@ -40,7 +41,7 @@ class DreamEntry {
   showInJournal: boolean
   tags: string[]
 
-  constructor(data: Partial<DreamEntry> = {}) {
+  constructor(data: Partial<DreamEntryType> = {}) {
     this.id = data.id || crypto.randomUUID()
     this.title = data.title || ''
     this.content = data.content || ''
@@ -136,7 +137,7 @@ export default function Home() {
     if (loadedEntries) {
       try {
         const parsed = JSON.parse(loadedEntries);
-        const entriesWithDates = parsed.map((entry: Omit<DreamEntry, 'date' | 'analysis'> & {
+        const entriesWithDates = parsed.map((entry: Omit<DreamEntryType, 'date' | 'analysis'> & {
           date: string;
           analysis?: {
             messages: {

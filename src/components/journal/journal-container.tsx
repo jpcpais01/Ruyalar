@@ -6,41 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-
-// Define a type for journal entries
-interface JournalEntry {
-  id: string;
-  title: string;
-  content: string;
-  date: Date;
-  lucidityLevel: number;
-  moodLevel: number;
-  emotions: string[];
-  clarity: number;
-  analysis?: {
-    messages: {
-      text: string;
-      isUser: boolean;
-      timestamp: Date;
-    }[];
-    lastUpdated: Date;
-  };
-  messages: {
-    text: string;
-    isUser: boolean;
-    timestamp: Date;
-  }[];
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-  lastUpdated: Date;
-  showInJournal: boolean;
-}
+import { DreamEntryType } from "@/types/dream"
 
 interface JournalContainerProps {
-  entries: JournalEntry[];
-  onEntriesChange: (entries: JournalEntry[]) => void;
-  onAnalyze: (id: string, content: string) => void;
+  entries: DreamEntryType[];
+  onEntriesChange: (entries: DreamEntryType[]) => void;
+  onAnalyze?: (id: string, content: string) => void;
 }
 
 export function JournalContainer({ entries, onEntriesChange, onAnalyze }: JournalContainerProps) {
@@ -62,19 +33,19 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
   const [searchQuery, setSearchQuery] = useState('');
 
   // State for selected entry
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
+  const [selectedEntry, setSelectedEntry] = useState<DreamEntryType | null>(null)
 
   // State for showing analysis
   const [showAnalysis, setShowAnalysis] = useState(false)
 
   // State for editing entry
-  const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
+  const [editingEntry, setEditingEntry] = useState<DreamEntryType | null>(null)
 
   // Function to handle adding a new journal entry
   const handleAddEntry = () => {
     if (!newEntry.title.trim() || !newEntry.content.trim()) return;
     
-    const entry: JournalEntry = {
+    const entry: DreamEntryType = {
       id: crypto.randomUUID(),
       title: newEntry.title,
       content: newEntry.content,
@@ -117,7 +88,7 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
   }
 
   // Function to handle analyze click (switches to analysis tab)
-  const handleAnalyzeClick = (entry: JournalEntry) => {
+  const handleAnalyzeClick = (entry: DreamEntryType) => {
     const event = new CustomEvent('analyzeDream', {
       detail: { content: entry.content, id: entry.id }
     });
