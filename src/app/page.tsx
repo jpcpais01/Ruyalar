@@ -20,7 +20,6 @@ class DreamEntry {
   moodLevel: number
   emotions: string[]
   clarity: number
-  tags: string[]
   analysis?: {
     messages: {
       text: string
@@ -49,7 +48,6 @@ class DreamEntry {
     this.moodLevel = data.moodLevel || 3
     this.emotions = data.emotions || []
     this.clarity = data.clarity || 3
-    this.tags = data.tags || []
     this.analysis = data.analysis
     this.messages = data.messages || []
     this.text = data.text || ''
@@ -200,7 +198,10 @@ export default function Home() {
         lastUpdated: entry.analysis.lastUpdated.toISOString()
       } : undefined
     }));
-    localStorage.setItem('dreamEntries', JSON.stringify(entriesForStorage));
+    const json = JSON.stringify(entriesForStorage);
+    const regex = /<[^>]*>/g;
+    const cleanJson = json.replace(regex, '');
+    localStorage.setItem('dreamEntries', cleanJson);
   }, []);
 
   const handleDreamAnalysis = useCallback((dreamId: string, messages: { text: string; isUser: boolean; timestamp: Date }[]) => {
@@ -230,7 +231,10 @@ export default function Home() {
           lastUpdated: entry.analysis.lastUpdated.toISOString()
         } : undefined
       }));
-      localStorage.setItem('dreamEntries', JSON.stringify(entriesForStorage));
+      const json = JSON.stringify(entriesForStorage);
+      const regex = /<[^>]*>/g;
+      const cleanJson = json.replace(regex, '');
+      localStorage.setItem('dreamEntries', cleanJson);
       return newEntries;
     });
   }, []);
