@@ -66,7 +66,8 @@ export function JournalDialog({ open, onOpenChange, onSubmit }: JournalDialogPro
       lucidityLevel,
       moodLevel,
       clarity,
-      showInJournal: true
+      showInJournal: true,
+      tags: []
     })
     
     // Reset form
