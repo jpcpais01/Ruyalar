@@ -26,7 +26,8 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
     moodLevel: 3,
     emotions: [] as string[],
     clarity: 3,
-    showInJournal: true
+    showInJournal: true,
+    tags: [] as string[]
   })
 
   // State for search query
@@ -59,7 +60,8 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
       isUser: true, // Assuming the entry is created by the user
       timestamp: new Date(), // Current timestamp
       lastUpdated: new Date(), // Current timestamp for last update
-      showInJournal: newEntry.showInJournal
+      showInJournal: newEntry.showInJournal,
+      tags: newEntry.tags
     };
 
     const updatedEntries = [entry, ...entries];
@@ -72,7 +74,8 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
       moodLevel: 3,
       emotions: [],
       clarity: 3,
-      showInJournal: true
+      showInJournal: true,
+      tags: [] // Reset tags to empty array
     });
     setOpen(false);
   };
