@@ -80,7 +80,6 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
       detail: { content, id }
     })
     window.dispatchEvent(event)
-    onAnalyze(id, content)
   };
 
   const filteredEntries = useMemo(() => {
