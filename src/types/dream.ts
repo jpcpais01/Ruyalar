@@ -7,7 +7,6 @@ export interface DreamEntryType {
   moodLevel: number;
   emotions: string[];
   clarity: number;
-  tags: string[];
   analysis?: {
     messages: {
       text: string;

@@ -7,11 +7,13 @@ import { NavButton } from "@/components/nav-button"
 import { ChatContainer } from "@/components/chat/chat-container"
 import { JournalContainer } from "@/components/journal/journal-container"
 import { HistoryContainer } from "@/components/history/history-container"
+import { AnalysisContainer } from "@/components/analysis/analysis-container"
 import useEmblaCarousel from "embla-carousel-react"
-import { Brain, BookOpen, Clock } from "lucide-react"
+import { Brain, BookOpen, Clock, BarChart2 } from "lucide-react"
 import { JournalDialog } from "@/components/journal/journal-dialog"
+import type { DreamEntryType } from "@/types/dream"
 
-class DreamEntry {
+class DreamEntry implements DreamEntryType {
   id: string
   title: string
   content: string
@@ -40,7 +42,7 @@ class DreamEntry {
   lastUpdated: Date
   showInJournal: boolean
 
-  constructor(data: Partial<DreamEntry> = {}) {
+  constructor(data: Partial<DreamEntryType> = {}) {
     this.id = data.id || crypto.randomUUID()
     this.title = data.title || ''
     this.content = data.content || ''
@@ -66,14 +68,13 @@ export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(1)
   const [previousSlide, setPreviousSlide] = useState(1)
   const [journalOpen, setJournalOpen] = useState(false)
-  const [entries, setEntries] = useState<DreamEntry[]>([])
+  const [entries, setEntries] = useState<DreamEntryType[]>([])
   const [selectedDream, setSelectedDream] = useState<{ id: string, content: string } | null>(null)
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
     axis: "x",
     dragFree: false,
     containScroll: "trimSnaps",
-    align: "center",
     skipSnaps: false,
     startIndex: 1 // Start at Journal page
   })
@@ -136,7 +137,7 @@ export default function Home() {
     if (loadedEntries) {
       try {
         const parsed = JSON.parse(loadedEntries);
-        const entriesWithDates = parsed.map((entry: Omit<DreamEntry, 'date' | 'analysis'> & {
+        const entriesWithDates = parsed.map((entry: Omit<DreamEntryType, 'date' | 'analysis'> & {
           date: string;
           analysis?: {
             messages: {
@@ -169,7 +170,7 @@ export default function Home() {
     }
   }, []);
 
-  const handleEntriesUpdate = useCallback((newEntries: DreamEntry[]) => {
+  const handleEntriesUpdate = useCallback((newEntries: DreamEntryType[]) => {
     // Ensure dates are properly handled
     const entriesWithDates = newEntries.map(entry => new DreamEntry({
       ...entry,
@@ -297,6 +298,9 @@ export default function Home() {
                   }}
                 />
               </div>
+              <div className="embla__slide h-full overflow-hidden">
+                <AnalysisContainer entries={entries} />
+              </div>
             </div>
           </div>
         </div>
@@ -321,6 +325,12 @@ export default function Home() {
             label="History"
             isActive={currentSlide === 2}
             onClick={() => scrollTo(2)}
+          />
+          <NavButton
+            icon={BarChart2}
+            label="Analysis"
+            isActive={currentSlide === 3}
+            onClick={() => scrollTo(3)}
           />
         </nav>
       </div>
