@@ -6,12 +6,42 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { DreamEntryType } from "@/types/dream"
+
+// Define a type for journal entries
+interface JournalEntry {
+  id: string;
+  title: string;
+  content: string;
+  date: Date;
+  lucidityLevel: number;
+  moodLevel: number;
+  emotions: string[];
+  clarity: number;
+  tags: string[];
+  analysis?: {
+    messages: {
+      text: string;
+      isUser: boolean;
+      timestamp: Date;
+    }[];
+    lastUpdated: Date;
+  };
+  messages: {
+    text: string;
+    isUser: boolean;
+    timestamp: Date;
+  }[];
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
+  lastUpdated: Date;
+  showInJournal: boolean;
+}
 
 interface JournalContainerProps {
-  entries: DreamEntryType[];
-  onEntriesChange: (entries: DreamEntryType[]) => void;
-  onAnalyze?: (id: string, content: string) => void;
+  entries: JournalEntry[];
+  onEntriesChange: (entries: JournalEntry[]) => void;
+  onAnalyze: (id: string, content: string) => void;
 }
 
 export function JournalContainer({ entries, onEntriesChange, onAnalyze }: JournalContainerProps) {
@@ -26,27 +56,27 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
     moodLevel: 3,
     emotions: [] as string[],
     clarity: 3,
-    showInJournal: true,
-    tags: [] as string[]
+    tags: [] as string[],
+    showInJournal: true
   })
 
   // State for search query
   const [searchQuery, setSearchQuery] = useState('');
 
   // State for selected entry
-  const [selectedEntry, setSelectedEntry] = useState<DreamEntryType | null>(null)
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
 
   // State for showing analysis
   const [showAnalysis, setShowAnalysis] = useState(false)
 
   // State for editing entry
-  const [editingEntry, setEditingEntry] = useState<DreamEntryType | null>(null)
+  const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
 
   // Function to handle adding a new journal entry
   const handleAddEntry = () => {
     if (!newEntry.title.trim() || !newEntry.content.trim()) return;
     
-    const entry: DreamEntryType = {
+    const entry: JournalEntry = {
       id: crypto.randomUUID(),
       title: newEntry.title,
       content: newEntry.content,
@@ -55,13 +85,13 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
       moodLevel: newEntry.moodLevel,
       emotions: newEntry.emotions,
       clarity: newEntry.clarity,
+      tags: newEntry.tags,
       messages: [], // Add an empty array for messages
       text: newEntry.content, // Use content as text
       isUser: true, // Assuming the entry is created by the user
       timestamp: new Date(), // Current timestamp
       lastUpdated: new Date(), // Current timestamp for last update
-      showInJournal: newEntry.showInJournal,
-      tags: newEntry.tags
+      showInJournal: newEntry.showInJournal
     };
 
     const updatedEntries = [entry, ...entries];
@@ -74,8 +104,8 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
       moodLevel: 3,
       emotions: [],
       clarity: 3,
-      showInJournal: true,
-      tags: [] // Reset tags to empty array
+      tags: [],
+      showInJournal: true
     });
     setOpen(false);
   };
@@ -91,7 +121,7 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
   }
 
   // Function to handle analyze click (switches to analysis tab)
-  const handleAnalyzeClick = (entry: DreamEntryType) => {
+  const handleAnalyzeClick = (entry: JournalEntry) => {
     const event = new CustomEvent('analyzeDream', {
       detail: { content: entry.content, id: entry.id }
     });
@@ -188,6 +218,13 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                   <span>Hazy</span>
                   <span>Crystal Clear</span>
                 </div>
+              </div>
+              <div>
+                <Input
+                  placeholder="Add tags (comma separated)"
+                  onChange={(e) => setNewEntry({ ...newEntry, tags: e.target.value.split(',').map(tag => tag.trim()) })}
+                  className="w-full"
+                />
               </div>
               <div className="flex justify-end">
                 <Button onClick={handleAddEntry}>Save Dream</Button>
@@ -368,6 +405,19 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
               </div>
             </div>
             
+            {selectedEntry?.tags && selectedEntry?.tags.length > 0 && (
+              <div className="space-y-2">
+                <div className="font-medium">Tags</div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedEntry?.tags.map((tag, index) => (
+                    <span key={index} className="px-3 py-1 bg-muted rounded-full text-sm">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="prose prose-sm max-w-none">
               <p className="whitespace-pre-wrap">{selectedEntry?.content}</p>
             </div>
@@ -516,6 +566,18 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
               </div>
             </div>
 
+            <div>
+              <label className="text-sm font-medium">Tags</label>
+              <Input
+                placeholder="Add tags (comma separated)"
+                value={editingEntry?.tags?.join(', ') || ''}
+                onChange={(e) => setEditingEntry(editingEntry ? { 
+                  ...editingEntry, 
+                  tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
+                } : null)}
+                className="mt-2"
+              />
+            </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setEditingEntry(null)}>Cancel</Button>
               <Button 

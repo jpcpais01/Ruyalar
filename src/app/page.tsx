@@ -10,9 +10,8 @@ import { HistoryContainer } from "@/components/history/history-container"
 import useEmblaCarousel from "embla-carousel-react"
 import { Brain, BookOpen, Clock } from "lucide-react"
 import { JournalDialog } from "@/components/journal/journal-dialog"
-import { DreamEntryType } from "@/types/dream"
 
-class DreamEntry implements DreamEntryType {
+class DreamEntry {
   id: string
   title: string
   content: string
@@ -21,6 +20,7 @@ class DreamEntry implements DreamEntryType {
   moodLevel: number
   emotions: string[]
   clarity: number
+  tags: string[]
   analysis?: {
     messages: {
       text: string
@@ -39,9 +39,8 @@ class DreamEntry implements DreamEntryType {
   timestamp: Date
   lastUpdated: Date
   showInJournal: boolean
-  tags: string[]
 
-  constructor(data: Partial<DreamEntryType> = {}) {
+  constructor(data: Partial<DreamEntry> = {}) {
     this.id = data.id || crypto.randomUUID()
     this.title = data.title || ''
     this.content = data.content || ''
@@ -50,6 +49,7 @@ class DreamEntry implements DreamEntryType {
     this.moodLevel = data.moodLevel || 3
     this.emotions = data.emotions || []
     this.clarity = data.clarity || 3
+    this.tags = data.tags || []
     this.analysis = data.analysis
     this.messages = data.messages || []
     this.text = data.text || ''
@@ -57,7 +57,6 @@ class DreamEntry implements DreamEntryType {
     this.timestamp = data.timestamp || new Date()
     this.lastUpdated = data.lastUpdated || new Date()
     this.showInJournal = data.showInJournal ?? true
-    this.tags = data.tags || []
   }
 }
 
@@ -137,7 +136,7 @@ export default function Home() {
     if (loadedEntries) {
       try {
         const parsed = JSON.parse(loadedEntries);
-        const entriesWithDates = parsed.map((entry: Omit<DreamEntryType, 'date' | 'analysis'> & {
+        const entriesWithDates = parsed.map((entry: Omit<DreamEntry, 'date' | 'analysis'> & {
           date: string;
           analysis?: {
             messages: {
@@ -150,7 +149,6 @@ export default function Home() {
         }) => new DreamEntry({
           ...entry,
           date: new Date(entry.date),
-          tags: entry.tags || [], // Ensure tags are always present
           analysis: entry.analysis ? {
             ...entry.analysis,
             messages: entry.analysis.messages.map((msg: {
@@ -176,7 +174,6 @@ export default function Home() {
     const entriesWithDates = newEntries.map(entry => new DreamEntry({
       ...entry,
       date: entry.date instanceof Date ? entry.date : new Date(entry.date),
-      tags: entry.tags || [], // Ensure tags are always present
       analysis: entry.analysis ? {
         ...entry.analysis,
         messages: entry.analysis.messages.map(msg => ({
@@ -194,7 +191,6 @@ export default function Home() {
     const entriesForStorage = entriesWithDates.map(entry => ({
       ...entry,
       date: entry.date.toISOString(),
-      tags: entry.tags || [], // Ensure tags are always present
       analysis: entry.analysis ? {
         ...entry.analysis,
         messages: entry.analysis.messages.map(msg => ({
@@ -204,10 +200,7 @@ export default function Home() {
         lastUpdated: entry.analysis.lastUpdated.toISOString()
       } : undefined
     }));
-    const json = JSON.stringify(entriesForStorage);
-    const regex = /<[^>]*>/g;
-    const cleanJson = json.replace(regex, '');
-    localStorage.setItem('dreamEntries', cleanJson);
+    localStorage.setItem('dreamEntries', JSON.stringify(entriesForStorage));
   }, []);
 
   const handleDreamAnalysis = useCallback((dreamId: string, messages: { text: string; isUser: boolean; timestamp: Date }[]) => {
@@ -228,7 +221,6 @@ export default function Home() {
       const entriesForStorage = newEntries.map(entry => ({
         ...entry,
         date: entry.date.toISOString(),
-        tags: entry.tags || [], // Ensure tags are always present
         analysis: entry.analysis ? {
           ...entry.analysis,
           messages: entry.analysis.messages.map(msg => ({
@@ -238,10 +230,7 @@ export default function Home() {
           lastUpdated: entry.analysis.lastUpdated.toISOString()
         } : undefined
       }));
-      const json = JSON.stringify(entriesForStorage);
-      const regex = /<[^>]*>/g;
-      const cleanJson = json.replace(regex, '');
-      localStorage.setItem('dreamEntries', cleanJson);
+      localStorage.setItem('dreamEntries', JSON.stringify(entriesForStorage));
       return newEntries;
     });
   }, []);
