@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Slider } from "@/components/ui/slider"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -83,7 +84,11 @@ export function JournalDialog({ open, onOpenChange, onSubmit }: JournalDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[625px] max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className="sm:max-w-[625px] max-h-[90vh] overflow-y-auto"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>New Dream Journal Entry</DialogTitle>
           <DialogDescription>
@@ -180,39 +185,51 @@ export function JournalDialog({ open, onOpenChange, onSubmit }: JournalDialogPro
               <label className="text-sm font-medium">
                 Lucidity Level (1-5)
               </label>
-              <Input
-                type="number"
-                min={1}
-                max={5}
-                value={lucidityLevel}
-                onChange={(e) => setLucidityLevel(Number(e.target.value))}
-              />
+              <div className="flex items-center gap-4">
+                <Slider 
+                  value={[lucidityLevel]} 
+                  onValueChange={(values) => setLucidityLevel(values[0])}
+                  min={1} 
+                  max={5} 
+                  step={1} 
+                  className="w-full" 
+                />
+                <span className="text-sm text-muted-foreground">{lucidityLevel}</span>
+              </div>
             </div>
             
             <div className="grid gap-2">
               <label className="text-sm font-medium">
                 Mood Level (1-5)
               </label>
-              <Input
-                type="number"
-                min={1}
-                max={5}
-                value={moodLevel}
-                onChange={(e) => setMoodLevel(Number(e.target.value))}
-              />
+              <div className="flex items-center gap-4">
+                <Slider 
+                  value={[moodLevel]} 
+                  onValueChange={(values) => setMoodLevel(values[0])}
+                  min={1} 
+                  max={5} 
+                  step={1} 
+                  className="w-full" 
+                />
+                <span className="text-sm text-muted-foreground">{moodLevel}</span>
+              </div>
             </div>
             
             <div className="grid gap-2">
               <label className="text-sm font-medium">
                 Dream Clarity (1-5)
               </label>
-              <Input
-                type="number"
-                min={1}
-                max={5}
-                value={clarity}
-                onChange={(e) => setClarity(Number(e.target.value))}
-              />
+              <div className="flex items-center gap-4">
+                <Slider 
+                  value={[clarity]} 
+                  onValueChange={(values) => setClarity(values[0])}
+                  min={1} 
+                  max={5} 
+                  step={1} 
+                  className="w-full" 
+                />
+                <span className="text-sm text-muted-foreground">{clarity}</span>
+              </div>
             </div>
           </div>
         </div>
