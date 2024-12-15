@@ -18,7 +18,6 @@ interface JournalEntry {
   moodLevel: number;
   emotions: string[];
   clarity: number;
-  tags: string[];
   analysis?: {
     messages: {
       text: string;
@@ -315,19 +314,6 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
               </div>
             </div>
             
-            {selectedEntry?.tags && selectedEntry?.tags.length > 0 && (
-              <div className="space-y-2">
-                <div className="font-medium">Tags</div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedEntry?.tags.map((tag, index) => (
-                    <span key={index} className="px-3 py-1 bg-muted rounded-full text-sm">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <div className="prose prose-sm max-w-none">
               <p className="whitespace-pre-wrap">{selectedEntry?.content}</p>
             </div>
@@ -476,18 +462,6 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
               </div>
             </div>
 
-            <div>
-              <label className="text-sm font-medium">Tags</label>
-              <Input
-                placeholder="Add tags (comma separated)"
-                value={editingEntry?.tags?.join(', ') || ''}
-                onChange={(e) => setEditingEntry(editingEntry ? { 
-                  ...editingEntry, 
-                  tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
-                } : null)}
-                className="mt-2"
-              />
-            </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setEditingEntry(null)}>Cancel</Button>
               <Button 
