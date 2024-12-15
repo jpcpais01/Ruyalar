@@ -217,13 +217,16 @@ export function AnalysisContainer({ entries }: AnalysisContainerProps) {
                 <Tooltip 
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
+                      const value = payload[0].value as number;
+                      const percentage = entries.length > 0 ? ((value / entries.length) * 100).toFixed(1) : '0.0';
+                      
                       return (
                         <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85 px-4 py-2.5 rounded-lg shadow-lg border">
-                        <p className="font-medium text-sm">{payload[0].name}</p>
-                        <p className="text-xs text-muted-foreground/80 mt-1">
-                          {payload[0].value} dreams ({((payload[0].value / entries.length) * 100).toFixed(1)}%)
-                        </p>
-                      </div>
+                          <p className="font-medium text-sm">{payload[0].name}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">
+                            {value} dreams ({percentage}%)
+                          </p>
+                        </div>
                       );
                     }
                     return null;
