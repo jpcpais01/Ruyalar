@@ -36,6 +36,7 @@ interface JournalEntry {
   timestamp: Date;
   lastUpdated: Date;
   showInJournal: boolean;
+  tags: string[];
 }
 
 interface JournalContainerProps {
@@ -60,7 +61,8 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
       text: '',
       isUser: false,
       timestamp: new Date(),
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      tags: []
     }
     onEntriesChange([newEntry, ...entries])
   }
@@ -178,8 +180,8 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                             key={level}
                             className={`w-1.5 h-1.5 rounded-full ${
                               level <= entry.lucidityLevel
-                                ? 'bg-primary'
-                                : 'bg-muted'
+                                ? 'bg-purple-500'
+                                : 'bg-gray-200'
                             }`}
                           />
                         ))}
@@ -193,8 +195,8 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                             key={level}
                             className={`w-1.5 h-1.5 rounded-full ${
                               level <= entry.moodLevel
-                                ? 'bg-primary'
-                                : 'bg-muted'
+                                ? 'bg-green-500'
+                                : 'bg-gray-200'
                             }`}
                           />
                         ))}
@@ -208,8 +210,8 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                             key={level}
                             className={`w-1.5 h-1.5 rounded-full ${
                               level <= entry.clarity
-                                ? 'bg-primary'
-                                : 'bg-muted'
+                                ? 'bg-blue-500'
+                                : 'bg-gray-200'
                             }`}
                           />
                         ))}
@@ -468,7 +470,9 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                 onClick={() => {
                   if (editingEntry) {
                     const updatedEntries = entries.map(entry => 
-                      entry.id === editingEntry.id ? editingEntry : entry
+                      entry.id === editingEntry.id 
+                        ? { ...editingEntry, tags: editingEntry.tags || [] } 
+                        : entry
                     )
                     onEntriesChange(updatedEntries)
                     setEditingEntry(null)
