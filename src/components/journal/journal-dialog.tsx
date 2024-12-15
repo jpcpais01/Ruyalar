@@ -100,6 +100,7 @@ export function JournalDialog({ open, onOpenChange, onSubmit }: JournalDialogPro
               placeholder="Enter a title for your dream"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              autoFocus={false}
             />
           </div>
           
@@ -113,6 +114,7 @@ export function JournalDialog({ open, onOpenChange, onSubmit }: JournalDialogPro
               className="min-h-[200px]"
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              autoFocus={false}
             />
           </div>
 

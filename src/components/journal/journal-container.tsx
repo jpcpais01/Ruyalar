@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { BookOpen, Plus, Search, Trash2, Brain, X, Pencil, Clock, Archive } from "lucide-react"
+import { BookOpen, Plus, Search, Archive, Brain, X, Pencil, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -151,16 +151,22 @@ export function JournalContainer({ entries, onEntriesChange, onAnalyze }: Journa
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setEditingEntry(entry)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setEditingEntry(entry)
+                    }}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleDeleteEntry(entry.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteEntry(entry.id)
+                    }}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Archive className="h-4 w-4" />
                   </Button>
                 </div>
                 <div className="pr-16">
